@@ -1,0 +1,100 @@
+#include <stdio.h>
+#include <stdint.h>
+
+/***** 试商法实现32位整数除法 *****/
+
+/*
+ * dividend：被除数
+ * divisor：除数
+ * is_div：结果取商还是取余数
+ * 返回值：商或者余数
+*/
+static int32_t __div(int32_t dividend, int32_t divisor, int8_t is_div)
+{
+    int8_t i;
+
+    int32_t dividend_tmp;
+    int32_t divisor_tmp;
+    int32_t minuend;
+    int32_t result = 0;
+    int32_t remain = 0;
+
+    // 如果除数为0，则直接返回0
+    if (divisor == 0)
+        return 0;
+
+    // 取被除数的绝对值
+    if (dividend < 0)
+        dividend_tmp = ~dividend + 1;
+    else
+        dividend_tmp = dividend;
+    // 取除数的绝对值
+    if (divisor < 0)
+        divisor_tmp = ~divisor + 1;
+    else
+        divisor_tmp = divisor;
+
+    // 取被除数最高位(第31位)的值作为被减数
+    minuend = (dividend_tmp >> 31) & 0x1;
+    for (i = 30; i >= 0; i--) {
+        // 如果被减数大于等于除数
+        if (minuend >= divisor_tmp) {
+            // 被减数减去除数后的值左移一位，然后或上被除数剩下的最高位的值
+            minuend = ((minuend - divisor_tmp) << 1) | ((dividend_tmp >> i) & 0x1);
+            // 商的值左移一位，然后或上1
+            result = (result << 1) | 0x1;
+        // 如果被减数小于除数
+        } else {
+            // 被减数左移一位，然后或上被除数剩下的最高位的值
+            minuend = (minuend << 1) | ((dividend_tmp >> i) & 0x1);
+            // 商的值左移一位，然后或上0
+            result = (result << 1) | 0x0;
+        }
+    }
+    // 最后一次比较被减数与除数的大小
+    if (minuend >= divisor_tmp) {
+        result = (result << 1) | 0x1;
+        // 余数等于被减数减去除数
+        remain = minuend - divisor_tmp;
+    } else {
+        result = (result << 1) | 0x0;
+        // 余数等于被减数
+        remain = minuend;
+    }
+
+    // 如果被除数与除数的正负号不相同，则商的结果为负数
+    if ((dividend < 0 && divisor >= 0) || (dividend >= 0 && divisor < 0))
+        result = ~result + 1;
+    // 如果被除数与余数的正负号不相同，则余数的结果为负数
+    if ((dividend < 0 && remain >= 0) || (dividend >= 0 && remain < 0))
+        remain = ~remain + 1;
+
+    if (is_div)
+        return result;
+    else
+        return remain;
+}
+
+// API，求商
+int32_t mydiv(int32_t dividend, int32_t divisor)
+{
+    return __div(dividend, divisor, 1);
+}
+
+// API，求余数
+int32_t mymod(int32_t dividend, int32_t divisor)
+{
+    return __div(dividend, divisor, 0);
+}
+
+
+#define DIVIDEND  (10)
+#define DIVISOR   (3)
+
+int main()
+{
+    printf("div = %d\n", mydiv(DIVIDEND, DIVISOR));
+    printf("rem = %d\n", mymod(DIVIDEND, DIVISOR));
+
+    return 0;
+}
